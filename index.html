@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice — Katie & Co.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ivory:     #FAF8F3;
+      --cream:     #F2EBE0;
+      --blush:     #E8D5C8;
+      --gold:      #B07D4E;
+      --gold-lt:   #D4A97A;
+      --deep:      #1C1714;
+      --mid:       #6B5244;
+      --soft:      #A08070;
+      --sage:      #5A7A60;
+      --sage-lt:   #EBF2EC;
+      --alert:     #8B3A3A;
+      --alert-lt:  #F5E8E8;
+      --card-bg:   #FFFCF8;
+      --border:    #E0D5C8;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--ivory);
+      color: var(--deep);
+      font-family: 'Jost', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* Subtle grain texture */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.4;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    }
+
+    /* ── Gold top rule ── */
+    .top-rule {
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--gold) 30%, var(--gold-lt) 50%, var(--gold) 70%, transparent 100%);
+    }
+
+    /* ── Demo banner ── */
+    .demo-banner {
+      background: var(--blush);
+      border-bottom: 1px solid var(--gold-lt);
+      text-align: center;
+      padding: 10px 20px;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      color: var(--mid);
+      display: none;
+    }
+    .demo-banner.visible { display: block; }
+
+    /* ── Loading state ── */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      gap: 20px;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error state ── */
+    #error-state {
+      display: none;
+      max-width: 480px;
+      margin: 100px auto;
+      text-align: center;
+      padding: 40px 24px;
+    }
+    #error-state h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      font-weight: 400;
+      color: var(--mid);
+      margin-bottom: 12px;
+    }
+    #error-state p { color: var(--soft); font-size: 15px; }
+
+    /* ── Main layout ── */
+    #invoice-content { display: none; }
+    #invoice-content.visible { display: block; }
+
+    .page-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      text-align: center;
+      padding: 56px 0 40px;
+    }
+
+    .studio-eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 14px;
+    }
+
+    .studio-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.8rem, 8vw, 4.2rem);
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      color: var(--deep);
+      line-height: 1;
+    }
+
+    .studio-tagline {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      color: var(--soft);
+      margin-top: 10px;
+    }
+
+    /* Ornamental divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 36px 0;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border));
+    }
+    .divider::after {
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .divider-gem {
+      width: 7px; height: 7px;
+      background: var(--gold);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+
+    /* ── Invoice meta ── */
+    .invoice-meta {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: start;
+      margin-bottom: 36px;
+    }
+
+    .client-greeting {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--soft);
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .client-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 400;
+      color: var(--deep);
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .wedding-date-label {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .wedding-date-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: var(--mid);
+    }
+
+    .invoice-number-block {
+      text-align: right;
+    }
+
+    .invoice-number-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--soft);
+      margin-bottom: 4px;
+    }
+
+    .invoice-number-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: var(--mid);
+    }
+
+    /* ── Services table ── */
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 14px;
+    }
+
+    .services-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 36px;
+    }
+
+    .services-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+    }
+
+    .services-row:last-child { border-bottom: none; }
+
+    .service-name {
+      font-size: 15px;
+      color: var(--deep);
+      font-weight: 400;
+    }
+
+    .service-desc {
+      font-size: 12px;
+      color: var(--soft);
+      margin-top: 2px;
+    }
+
+    .service-price {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.25rem;
+      color: var(--mid);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .services-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 18px 24px;
+      background: var(--cream);
+      border-top: 1px solid var(--border);
+    }
+
+    .total-label {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mid);
+      font-weight: 500;
+    }
+
+    .total-amount {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.8rem;
+      font-weight: 500;
+      color: var(--deep);
+    }
+
+    /* ── Payment timeline ── */
+    .payment-section { margin-bottom: 36px; }
+
+    .payment-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 540px) {
+      .payment-cards { grid-template-columns: 1fr; }
+      .invoice-meta { grid-template-columns: 1fr; }
+      .invoice-number-block { text-align: left; }
+    }
+
+    .payment-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .payment-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-lt));
+    }
+
+    .payment-card.paid::before {
+      background: linear-gradient(90deg, var(--sage), #7FAD86);
+    }
+
+    .payment-card.overdue::before {
+      background: linear-gradient(90deg, var(--alert), #B05050);
+    }
+
+    .payment-type {
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--soft);
+      margin-bottom: 10px;
+    }
+
+    .payment-amount {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.2rem;
+      font-weight: 400;
+      color: var(--deep);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .payment-percent {
+      font-size: 13px;
+      color: var(--soft);
+      margin-bottom: 14px;
+    }
+
+    .payment-due-label {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--soft);
+      margin-bottom: 3px;
+    }
+
+    .payment-due-date {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1rem;
+      color: var(--mid);
+      margin-bottom: 20px;
+    }
+
+    .pay-btn {
+      display: block;
+      width: 100%;
+      padding: 12px 20px;
+      background: var(--deep);
+      color: var(--ivory);
+      text-align: center;
+      text-decoration: none;
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .pay-btn:hover { background: var(--mid); }
+    .pay-btn:active { transform: scale(0.99); }
+
+    .pay-btn.paid-btn {
+      background: var(--sage-lt);
+      color: var(--sage);
+      cursor: default;
+      pointer-events: none;
+      border: 1px solid #BDD4BF;
+    }
+
+    .pay-btn.overdue-btn {
+      background: var(--alert);
+    }
+
+    .pay-btn.disabled-btn {
+      background: var(--cream);
+      color: var(--soft);
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ── Note from Katie ── */
+    .note-section {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 28px 28px 28px 24px;
+      margin-bottom: 36px;
+      border-left: 3px solid var(--gold-lt);
+    }
+
+    .note-from {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+
+    .note-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 1.15rem;
+      color: var(--mid);
+      line-height: 1.8;
+    }
+
+    /* ── Message form ── */
+    .message-section { margin-bottom: 36px; }
+
+    .message-form {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 28px;
+    }
+
+    .form-intro {
+      font-size: 14px;
+      color: var(--soft);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .form-row { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--soft);
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--ivory);
+      border: 1px solid var(--border);
+      border-radius: 1px;
+      font-family: 'Jost', sans-serif;
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--deep);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-textarea:focus {
+      border-color: var(--gold-lt);
+    }
+
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .form-submit {
+      display: inline-block;
+      padding: 13px 32px;
+      background: var(--gold);
+      color: white;
+      border: none;
+      font-family: 'Jost', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .form-submit:hover { background: var(--gold-lt); }
+
+    .form-success {
+      display: none;
+      background: var(--sage-lt);
+      border: 1px solid #BDD4BF;
+      padding: 16px 20px;
+      border-radius: 2px;
+      color: var(--sage);
+      font-size: 14px;
+    }
+
+    .form-success.visible { display: block; }
+
+    .no-formspree {
+      font-size: 13px;
+      color: var(--soft);
+      font-style: italic;
+      margin-top: 8px;
+    }
+
+    /* ── Footer ── */
+    .site-footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: var(--soft);
+      margin-bottom: 4px;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: var(--blush);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up {
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .fade-up:nth-child(2) { animation-delay: 0.1s; }
+    .fade-up:nth-child(3) { animation-delay: 0.2s; }
+    .fade-up:nth-child(4) { animation-delay: 0.3s; }
+    .fade-up:nth-child(5) { animation-delay: 0.4s; }
+    .fade-up:nth-child(6) { animation-delay: 0.5s; }
+  </style>
+</head>
+<body>
+
+  <div class="top-rule"></div>
+
+  <div class="demo-banner" id="demo-banner">
+    ✦ You're viewing a demo invoice — <a href="SETUP.md" style="color:var(--mid);font-weight:500;">see the setup guide</a> to connect your Google Sheet
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <span style="font-size:13px;letter-spacing:0.14em;color:var(--soft);text-transform:uppercase;">Loading your invoice</span>
+  </div>
+
+  <!-- Error -->
+  <div id="error-state">
+    <h2>Invoice Not Found</h2>
+    <p id="error-message">We couldn't find an invoice with that ID. Please check the link and try again, or contact Katie directly.</p>
+  </div>
+
+  <!-- Invoice content -->
+  <div id="invoice-content">
+    <div class="page-wrap">
+
+      <!-- Header -->
+      <header class="site-header fade-up">
+        <div class="studio-eyebrow">Beauty · Artistry · Care</div>
+        <div class="studio-name">Katie &amp; Co.</div>
+        <div class="studio-tagline">Bridal Makeup &amp; Beauty</div>
+      </header>
+
+      <div class="divider fade-up"><div class="divider-gem"></div></div>
+
+      <!-- Invoice meta -->
+      <div class="invoice-meta fade-up">
+        <div>
+          <div class="client-greeting">Prepared for</div>
+          <div class="client-name" id="client-name">—</div>
+          <div class="wedding-date-label">Wedding Date</div>
+          <div class="wedding-date-value" id="wedding-date">—</div>
+        </div>
+        <div class="invoice-number-block">
+          <div class="invoice-number-label">Invoice</div>
+          <div class="invoice-number-value" id="invoice-id">—</div>
+        </div>
+      </div>
+
+      <!-- Services -->
+      <div class="fade-up">
+        <div class="section-label">Services</div>
+        <div class="services-card">
+          <div id="services-list"></div>
+          <div class="services-total-row">
+            <span class="total-label">Total</span>
+            <span class="total-amount" id="total-amount">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment timeline -->
+      <div class="payment-section fade-up">
+        <div class="section-label">Payment Schedule</div>
+        <div class="payment-cards">
+
+          <div class="payment-card" id="deposit-card">
+            <div class="payment-type">Deposit</div>
+            <div class="payment-amount" id="deposit-amount">—</div>
+            <div class="payment-percent">20% of total — due 1 week before</div>
+            <div class="payment-due-label">Due By</div>
+            <div class="payment-due-date" id="deposit-due-date">—</div>
+            <a href="#" class="pay-btn" id="deposit-btn">Pay Deposit →</a>
+          </div>
+
+          <div class="payment-card" id="balance-card">
+            <div class="payment-type">Remaining Balance</div>
+            <div class="payment-amount" id="balance-amount">—</div>
+            <div class="payment-percent">80% of total — due day of wedding</div>
+            <div class="payment-due-label">Due On</div>
+            <div class="payment-due-date" id="balance-due-date">—</div>
+            <a href="#" class="pay-btn" id="balance-btn">Pay Balance →</a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Note from Katie -->
+      <div class="note-section fade-up" id="note-section" style="display:none">
+        <div class="note-from">A note from Katie</div>
+        <div class="note-text" id="note-text"></div>
+      </div>
+
+      <!-- Messages -->
+      <div class="message-section fade-up">
+        <div class="section-label">Send a Message</div>
+        <div class="message-form">
+          <p class="form-intro">Have a question about your services, want to schedule a trial, or just say hello? Send Katie a message and she'll get back to you.</p>
+
+          <div id="message-form-wrap">
+            <div class="form-row">
+              <label class="form-label">Your Name</label>
+              <input type="text" class="form-input" id="msg-name" placeholder="Emma Thompson">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Your Email</label>
+              <input type="email" class="form-input" id="msg-email" placeholder="emma@example.com">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Message</label>
+              <textarea class="form-textarea" id="msg-body" placeholder="Hi Katie! Just wanted to ask about..."></textarea>
+            </div>
+            <button class="form-submit" id="msg-submit" onclick="submitMessage()">Send Message</button>
+            <div class="no-formspree" id="no-formspree-note" style="display:none">
+              ✦ Messaging requires a free <a href="https://formspree.io" target="_blank" style="color:var(--gold)">Formspree</a> account — see setup guide to enable.
+            </div>
+          </div>
+
+          <div class="form-success" id="form-success">
+            ✦ Your message has been sent! Katie will be in touch soon.
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-wrap -->
+
+    <footer class="site-footer fade-up">
+      <div class="footer-name">Katie &amp; Co. — Bridal Beauty</div>
+      <div class="footer-note">Thank you for letting us be part of your day</div>
+    </footer>
+  </div>
+
+  <script>
+    // ── CONFIGURATION ──────────────────────────────────────────────────
+    // Replace this URL with your deployed Google Apps Script URL.
+    // Leave as-is to show the demo invoice.
+    const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+    // ── DEMO DATA (shown when no ID in URL or script not configured) ──
+    const DEMO_INVOICE = {
+      invoiceId: 'KT-2025-001',
+      clientName: 'Emma Thompson',
+      weddingDate: '2025-09-20',
+      services: [
+        { name: 'Bridal Hair & Makeup', description: 'Full glam, trial included', price: 350 },
+        { name: 'Bridesmaid Makeup', description: '× 3 people', price: 450 },
+        { name: 'Mother of the Bride Makeup', description: 'Classic finish', price: 120 },
+      ],
+      total: 920,
+      depositPaid: false,
+      remainderPaid: false,
+      stripeDepositLink: '',
+      stripeRemainderLink: '',
+      katieNote: "So excited to be part of your big day, Emma! Can't wait to make you and the girls look absolutely stunning. Feel free to reach out any time with questions — I'm here for you!",
+      formspreeEndpoint: ''
+    };
+
+    // ── HELPERS ────────────────────────────────────────────────────────
+    function fmt(n) {
+      return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtDate(str) {
+      // Parse as local date to avoid timezone shifting
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        month: 'long', day: 'numeric', year: 'numeric'
+      });
+    }
+
+    function addDays(dateStr, days) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(y, m - 1, d + days);
+      return dt;
+    }
+
+    function localMidnight(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function today() {
+      const t = new Date();
+      return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    }
+
+    // ── RENDER ─────────────────────────────────────────────────────────
+    function render(inv, isDemo) {
+      if (isDemo) document.getElementById('demo-banner').classList.add('visible');
+
+      // Meta
+      document.getElementById('client-name').textContent = inv.clientName;
+      document.getElementById('wedding-date').textContent = fmtDate(inv.weddingDate);
+      document.getElementById('invoice-id').textContent = inv.invoiceId;
+
+      // Services
+      const list = document.getElementById('services-list');
+      list.innerHTML = inv.services.map(s => `
+        <div class="services-row">
+          <div>
+            <div class="service-name">${s.name}</div>
+            ${s.description ? `<div class="service-desc">${s.description}</div>` : ''}
+          </div>
+          <div class="service-price">${fmt(s.price)}</div>
+        </div>
+      `).join('');
+      document.getElementById('total-amount').textContent = fmt(inv.total);
+
+      // Payment amounts
+      const deposit = Math.round(inv.total * 0.20 * 100) / 100;
+      const balance = inv.total - deposit;
+      document.getElementById('deposit-amount').textContent = fmt(deposit);
+      document.getElementById('balance-amount').textContent = fmt(balance);
+
+      // Dates
+      const depositDue = addDays(inv.weddingDate, -7);
+      const weddingDay = localMidnight(inv.weddingDate);
+      const now = today();
+
+      document.getElementById('deposit-due-date').textContent =
+        depositDue.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      document.getElementById('balance-due-date').textContent =
+        weddingDay.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+      // Deposit button state
+      const depositCard = document.getElementById('deposit-card');
+      const depositBtn  = document.getElementById('deposit-btn');
+
+      if (inv.depositPaid) {
+        depositCard.classList.add('paid');
+        depositBtn.className = 'pay-btn paid-btn';
+        depositBtn.textContent = '✓ Deposit Paid';
+      } else if (now > depositDue) {
+        depositCard.classList.add('overdue');
+        depositBtn.className = 'pay-btn overdue-btn';
+        depositBtn.textContent = 'Overdue — Pay Now →';
+        if (inv.stripeDepositLink) depositBtn.href = inv.stripeDepositLink;
+        else { depositBtn.className = 'pay-btn disabled-btn'; depositBtn.textContent = 'Contact Katie to Pay'; }
+      } else {
+        if (inv.stripeDepositLink) depositBtn.href = inv.stripeDepositLink;
+        else { depositBtn.className = 'pay-btn disabled-btn'; depositBtn.textContent = 'Link Coming Soon'; }
+      }
+
+      // Balance button state
+      const balanceCard = document.getElementById('balance-card');
+      const balanceBtn  = document.getElementById('balance-btn');
+
+      if (inv.remainderPaid) {
+        balanceCard.classList.add('paid');
+        balanceBtn.className = 'pay-btn paid-btn';
+        balanceBtn.textContent = '✓ Balance Paid';
+      } else if (!inv.depositPaid) {
+        balanceBtn.className = 'pay-btn disabled-btn';
+        balanceBtn.textContent = 'Pay Deposit First';
+      } else if (now < weddingDay) {
+        balanceBtn.className = 'pay-btn disabled-btn';
+        balanceBtn.textContent = 'Due on Wedding Day';
+      } else {
+        if (inv.stripeRemainderLink) balanceBtn.href = inv.stripeRemainderLink;
+        else { balanceBtn.className = 'pay-btn disabled-btn'; balanceBtn.textContent = 'Contact Katie to Pay'; }
+      }
+
+      // Katie's note
+      if (inv.katieNote) {
+        document.getElementById('note-text').textContent = inv.katieNote;
+        document.getElementById('note-section').style.display = 'block';
+      }
+
+      // Message form
+      if (!inv.formspreeEndpoint) {
+        document.getElementById('no-formspree-note').style.display = 'block';
+        document.getElementById('msg-submit').disabled = true;
+        document.getElementById('msg-submit').style.opacity = '0.5';
+        document.getElementById('msg-submit').style.cursor = 'not-allowed';
+      }
+      // Store endpoint for submit
+      document.getElementById('msg-submit').dataset.endpoint = inv.formspreeEndpoint || '';
+      document.getElementById('msg-name').value = inv.clientName || '';
+
+      // Show
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('invoice-content').classList.add('visible');
+
+      // Page title
+      document.title = `Invoice for ${inv.clientName} — Katie & Co.`;
+    }
+
+    // ── MESSAGE SUBMIT ─────────────────────────────────────────────────
+    async function submitMessage() {
+      const endpoint = document.getElementById('msg-submit').dataset.endpoint;
+      if (!endpoint) return;
+
+      const name  = document.getElementById('msg-name').value.trim();
+      const email = document.getElementById('msg-email').value.trim();
+      const body  = document.getElementById('msg-body').value.trim();
+
+      if (!name || !email || !body) {
+        alert('Please fill in all fields before sending.');
+        return;
+      }
+
+      const btn = document.getElementById('msg-submit');
+      btn.textContent = 'Sending...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, email, message: body,
+            _subject: `Message from ${name} — Katie & Co. Invoice`
+          })
+        });
+
+        if (res.ok) {
+          document.getElementById('message-form-wrap').style.display = 'none';
+          document.getElementById('form-success').classList.add('visible');
+        } else {
+          throw new Error();
+        }
+      } catch {
+        alert('Something went wrong. Please try emailing Katie directly.');
+        btn.textContent = 'Send Message';
+        btn.disabled = false;
+      }
+    }
+
+    // ── LOAD ───────────────────────────────────────────────────────────
+    async function loadInvoice() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+
+      const isDemo = !id || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE';
+
+      if (isDemo) {
+        setTimeout(() => render(DEMO_INVOICE, true), 400);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${APPS_SCRIPT_URL}?id=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        render(data, false);
+      } catch (err) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error-state').style.display = 'block';
+        document.getElementById('error-message').textContent =
+          err.message === 'Invoice not found'
+            ? `We couldn't find invoice "${id}". Please check the link or contact Katie.`
+            : 'Something went wrong loading your invoice. Please try again or contact Katie directly.';
+      }
+    }
+
+    loadInvoice();
+  </script>
+
+</body>
+</html>
