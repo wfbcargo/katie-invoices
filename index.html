@@ -516,11 +516,6 @@
   </style>
 </head>
 <body>
-
-  <div class="demo-banner" id="demo-banner">
-    ✦ Demo invoice — <a href="SETUP.md">see setup guide</a> to connect your Google Sheet
-  </div>
-
   <!-- Loading -->
   <div id="loading">
     <div class="spinner"></div>
@@ -705,6 +700,7 @@
       if (isDemo) document.getElementById('demo-banner').classList.add('visible');
 
       document.getElementById('client-name').textContent  = inv.clientName;
+      console.log(inv)
       document.getElementById('wedding-date').textContent = fmtDate(inv.weddingDate);
       document.getElementById('invoice-id').textContent   = inv.invoiceId;
       document.title = `Invoice for ${inv.clientName} — A+K Makeup and Beauty`;
