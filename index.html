@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invoice — Katie & Co.</title>
+  <title>Invoice — A+K makeup and beauty</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -592,8 +592,8 @@
       <!-- Header -->
       <header class="site-header fade-up">
         <div class="studio-eyebrow">Beauty · Artistry · Care</div>
-        <div class="studio-name">Katie &amp; Co.</div>
-        <div class="studio-tagline">Bridal Makeup &amp; Beauty</div>
+        <div class="studio-name">A+K</div>
+        <div class="studio-tagline">Makeup and Beauty</div>
       </header>
 
       <div class="divider fade-up"><div class="divider-gem"></div></div>
@@ -690,7 +690,7 @@
     </div><!-- /page-wrap -->
 
     <footer class="site-footer fade-up">
-      <div class="footer-name">Katie &amp; Co. — Bridal Beauty</div>
+      <div class="footer-name">A+K — Makeup and Beauty</div>
       <div class="footer-note">Thank you for letting us be part of your day</div>
     </footer>
   </div>
@@ -847,7 +847,7 @@
       document.getElementById('invoice-content').classList.add('visible');
 
       // Page title
-      document.title = `Invoice for ${inv.clientName} — Katie & Co.`;
+      document.title = `Invoice for ${inv.clientName} — A+K`;
     }
 
     // ── MESSAGE SUBMIT ─────────────────────────────────────────────────
@@ -874,7 +874,7 @@
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name, email, message: body,
-            _subject: `Message from ${name} — Katie & Co. Invoice`
+            _subject: `Message from ${name} — A+K Invoice`
           })
         });
 
